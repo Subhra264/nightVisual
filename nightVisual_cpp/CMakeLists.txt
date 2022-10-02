@@ -40,6 +40,13 @@ target_sources(${PROJECT_NAME}
         src/nightVisual.cc
 )
 
+# without it public headers won't get installed
+set(public_headers
+    include/nightVisual.hh
+)
+# note that ${public_headers} has to be in quotes
+set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${public_headers}")
+
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -48,9 +55,4 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-# without it public headers won't get installed
-set(public_headers
-    include/nightVisual.hh
-)
-# note that ${public_headers} has to be in quotes
-set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${public_headers}")
+add_subdirectory(example)
