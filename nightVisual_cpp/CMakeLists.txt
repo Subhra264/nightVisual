@@ -13,6 +13,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+# TODO: Find some workaround to put the executable files
+# inside example folder. For now, both the library and executables
+# are located inside lib/Debug folder, so that the executable is
+# able to find the PATH of the shared library.
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+
 # Check if CMAKE_INSTALL_PREFIX has default values
 # If so, customize it
 if(DEFINED CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -29,6 +35,13 @@ else()
         "Current value: ${CMAKE_INSTALL_PREFIX}"
     )
 endif()
+
+# If the following option is not set ON, then no symbols
+# will be exported by default on Windows. In that case,
+# we would have to use __declspec(export) manually to every
+# class to enable export on Windows. On Unix/Linux, all the
+# symbols are exported by default.
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 add_library(${PROJECT_NAME} SHARED
     # src/nightvisual.cc
