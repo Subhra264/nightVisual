@@ -1,9 +1,7 @@
-use super::pixels::{Pixels, Pixel};
+use super::pixels::{Pixel, RgbaPixel};
 
 // Goal 
 //
-
-
 // fn main() {
 
 
@@ -12,6 +10,23 @@ use super::pixels::{Pixels, Pixel};
 //     .create_context()
 //     .buffer(width, height, data)
 //     .dark_mode();
+
+    // ImageContext::new()
+    //     .create_buffer(width, height)
+    //     .fill_buffer(data)
+    //     .action(action)
+    //     .create_configs()
+    //     .indicate_existing_colors()
+        
+
+    // ImageBuffer::new(width, height)
+    //     .data(vec![8,23,232,234,234])
+    //     .build_context()
+    //     .config()
+    //     .indicate_existing_colors()
+
+    // ImageBuffer::new(width, height)
+    // ImageBuffer::data(vec![])
 
 // }
 
@@ -23,13 +38,13 @@ use super::pixels::{Pixels, Pixel};
 trait ImgView {
     fn dimensions(&self) -> (u32, u32);
     fn get_pixel(&self, x: u32, y: u32) -> Pixel;
-    fn pixels(&self) -> &Pixels;
+    fn pixels(&self) -> &Vec<Pixel>;
 }
 
 pub struct ImageBuffer {
     width: u32,
     height: u32,
-    data: Pixels //TODO
+    data: Vec<Pixel> //TODO
 }
 
 impl ImgView for ImageBuffer {
@@ -46,17 +61,15 @@ impl ImgView for ImageBuffer {
     /// * `y` - The y position of the pixel
     /// 
     /// Returns `Pixel`
-    fn get_pixel(&self, x: u32, y: u32) -> Pixel {
+    fn get_pixel(&self, _x: u32, _y: u32) -> Pixel {
         // TODO: Return the Pixel at position (x,y)
-        Pixel {
-            // pixel_type: PixelType::Luma(1)
-        }
+        Pixel::RGBA(RgbaPixel::new(255, 255, 255, 255))
     }
 
     /// Returns a iterator over the pixels of the image
     /// 
     /// Returns `Pixels` iterator
-    fn pixels(&self) -> &Pixels {
+    fn pixels(&self) -> &Vec<Pixel> {
         &self.data
     }
 }
@@ -82,7 +95,10 @@ impl ImageConfig {
     /// | Configurations | Default values |
     /// | -------------- | -------------- |
     /// | `indicate_existing_colors` | `false` |
-    pub fn new() -> Self {
+    /// 
+    /// ## Returns
+    /// * `ImageConfig` - a new `ImageConfig` instance
+    pub fn new() -> ImageConfig {
         ImageConfig { indicate_existing_colors: false }
     }
 
@@ -95,25 +111,96 @@ impl ImageConfig {
     /// 
     /// ## Returns
     /// * `Self` - The ImageConfig instance on which this method is called
-    pub fn indicate_existing_colors(mut self, on: bool) -> Self {
+    pub fn set_indicate_existing_colors(mut self, on: bool) -> Self {
         self.indicate_existing_colors = on;
         self
     }
 
-    pub fn create_image_context(self, buffer: ImageBuffer) -> ImageContext {
-        ImageContext { config: self, buffer }
+    /// # ImageConfig::create_context()
+    /// 
+    /// Creates a new ImageContext
+    pub fn create_context(self) -> ImageContext {
+        ImageContext::new(self, None, None)
     }
 }
+
+// use std::ops::Fn;
+
+// type ActionFunction = dyn Fn(Pixel, &ImageConfig) -> Pixel;
+// type ActionFunction = Fn(u32, u16) -> u32;
+type ActionFunction = fn(u32, u16) -> u32;
 
 /// # ImageContext
 /// 
 /// Provides all methods to perform various operations on the given image buffer
 pub struct ImageContext {
     config: ImageConfig,
-    buffer: ImageBuffer,
+    buffer: Option<ImageBuffer>,
+    action: Option<ActionFunction>
 }
 
 impl ImageContext {
+    /// # ImageContext::new()acdfe
+    /// 
+    /// Creates a new ImageContext instance
+    /// 
+    /// ## Argumnents
+    /// * `config` - `ImageConfig` - Required. All the configurations
+    /// * `buffer` - `Option<ImageBuffer>` - Optional. The buffer on which the operations are to be performed
+    /// * `action` - `Option<ActionFunction>` - Optional.The action function for custom algorithms
+    /// 
+    /// ## Returns
+    /// * `ImageContext` - Returns a new `ImageContext` instance
+    pub fn new(config: ImageConfig, buffer: Option<ImageBuffer>, action: Option<ActionFunction>) -> ImageContext {
+        ImageContext {
+            config,
+            buffer,
+            action
+        }
+    }
+
+    /// ImageContext::set_buffer()
+    /// 
+    /// Sets the buffer of the ImageContext. This buffer will be used for dark mode operations
+    /// 
+    /// ## Arguments
+    /// * `buffer` - `ImageBuffer` - Required. The buffer to be used for dark mode
+    /// 
+    /// ## Returns
+    /// * `Self` - The `ImageContext` itself
+    pub fn set_buffer(mut self, buffer: ImageBuffer) -> Self {
+        self.buffer = Some(buffer);
+        self
+    }
+
+    /// ImageContext::set_config()
+    /// 
+    /// Sets the configurations of the ImageContext. This config will be used for dark mode operations
+    /// 
+    /// ## Arguments
+    /// * `config` - `ImageConfig` - Required. The config to be used for dark mode
+    /// 
+    /// ## Returns
+    /// * `Self` - The `ImageContext` itself
+    pub fn set_config(mut self, config: ImageConfig) -> Self {
+        self.config = config;
+        self
+    }
+
+    /// ImageContext::set_action()
+    /// 
+    /// Sets the action function of the ImageContext. This action will be used for custom algorithms
+    /// 
+    /// ## Arguments
+    /// * `action` - `ActionFunction` - Required.
+    ///
+    /// ## Returns
+    /// * `Self` - The `ImageContext` itself
+    pub fn set_action(mut self, action: ActionFunction) -> Self {
+        self.action = Some(action);
+        self
+    }
+
     // pub fn create_image(width: u32, height: u32) {
     //     // let buffer = Buffer {
     //     //     width,
