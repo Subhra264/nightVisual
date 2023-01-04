@@ -37,7 +37,7 @@ use super::pixels::{Pixel, RgbaPixel};
 /// but contains only the necessary fields/methods for this crate.
 trait ImgView {
     fn dimensions(&self) -> (u32, u32);
-    fn get_pixel(&self, x: u32, y: u32) -> Pixel;
+    fn get_pixel(&self, x: u32, y: u32) -> &Pixel;
     fn pixels(&self) -> &Vec<Pixel>;
 }
 
@@ -48,6 +48,7 @@ pub struct ImageBuffer {
 }
 
 impl ImgView for ImageBuffer {
+
     /// Returns the dimensions of the image buffer
     /// 
     /// Returns a tuple containing width and height sequentially.
@@ -60,10 +61,18 @@ impl ImgView for ImageBuffer {
     /// * `x` - The x position of the pixel
     /// * `y` - The y position of the pixel
     /// 
-    /// Returns `Pixel`
-    fn get_pixel(&self, _x: u32, _y: u32) -> Pixel {
-        // TODO: Return the Pixel at position (x,y)
-        Pixel::RGBA(RgbaPixel::new(255, 255, 255, 255))
+    /// Returns `&Pixel`
+    fn get_pixel(&self, x: u32, y: u32) -> &Pixel {
+        // Here, as x and y both are u32, they are always positive
+        if x < self.width && y < self.height {
+            // If `as usize` is not put, it will throw error
+            // since, `(y * self.height + x)` is an u32 and u32 does not implement
+            // the `SliceIndex<[Pixel]>` trait, use of usize is necessary as it
+            // implements the `SliceIndex<[T]>` trait
+            return &self.data[(y * self.height + x) as usize];
+        }
+        
+        panic!("Image index {:?} out of bound {:?}", (x, y), (self.width, self.height));
     }
 
     /// Returns a iterator over the pixels of the image
@@ -71,6 +80,29 @@ impl ImgView for ImageBuffer {
     /// Returns `Pixels` iterator
     fn pixels(&self) -> &Vec<Pixel> {
         &self.data
+    }
+}
+
+impl ImageBuffer {
+    pub fn new(width: u32, height: u32, data: &[u8]) -> ImageBuffer {
+        let mut pixels: Vec<Pixel> = Vec::new();
+
+        // For now lets consider only rgba images
+        for i in 0..(width * height) as usize {
+
+            // (Width * Height) is the total number of pixels present in the image
+            // Each pixel consists of 4 different values - r, g, b and a
+            // Since, this method expects the data to be an one dimensional array of u8,
+            // for each pixel( i.e. for each 'i'), we have to iterate over 4 consecutive elements
+            let r = data[i*4];
+            let g = data[i*4 + 1];
+            let b = data[i*4 + 2];
+            let a = data[i*4 + 3];
+
+            pixels.push(Pixel::RGBA(RgbaPixel::new(r, g, b, a)));
+        }
+
+        ImageBuffer { width, height, data: pixels }
     }
 }
 
