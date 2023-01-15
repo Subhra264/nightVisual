@@ -1,3 +1,4 @@
+use std::fmt::Error;
 use super::pixels::{Pixel, RgbaPixel};
 
 // Goal 
@@ -50,7 +51,7 @@ pub struct ImageBuffer {
 impl ImgView for ImageBuffer {
 
     /// Returns the dimensions of the image buffer
-    /// 
+    ///
     /// Returns a tuple containing width and height sequentially.
     fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
@@ -60,7 +61,7 @@ impl ImgView for ImageBuffer {
     /// # Arguments
     /// * `x` - The x position of the pixel
     /// * `y` - The y position of the pixel
-    /// 
+    ///
     /// Returns `&Pixel`
     fn get_pixel(&self, x: u32, y: u32) -> &Pixel {
         // Here, as x and y both are u32, they are always positive
@@ -76,7 +77,7 @@ impl ImgView for ImageBuffer {
     }
 
     /// Returns a iterator over the pixels of the image
-    /// 
+    ///
     /// Returns `Pixels` iterator
     fn pixels(&self) -> &Vec<Pixel> {
         &self.data
@@ -106,41 +107,58 @@ impl ImageBuffer {
     }
 }
 
-/// #ImageConfig
+/// # DarkModePolicy
 /// 
+/// An enum representing the policy that is
+/// going to be followed while applying dark mode
+/// 
+/// ## Possible values
+/// 
+/// * `INVERSE` - Inverse Policy that inverses the pixel colors
+pub enum DarkModePolicy {
+    INVERSE,
+}
+
+/// #ImageConfig
+///
 /// It offers various configurations to be used while performing
 /// the dark mode operations on the given image buffer
 pub struct ImageConfig {
     // TODO: Offer configuration options for flexibility
-    indicate_existing_colors: bool
+    indicate_existing_colors: bool,
+    dark_mode_policy: DarkModePolicy
 }
 
 // Methods to set the configurations
 impl ImageConfig {
 
     /// # ImageConfig::new()
-    /// 
+    ///
     /// Returns a new instance of ImageConfig struct with default configurations
-    /// 
+    ///
     /// ## Default values of each configuration
-    /// 
+    ///
     /// | Configurations | Default values |
     /// | -------------- | -------------- |
     /// | `indicate_existing_colors` | `false` |
-    /// 
+    /// | `dark_mode_policy` | `INVERSE` |
+    ///
     /// ## Returns
     /// * `ImageConfig` - a new `ImageConfig` instance
     pub fn new() -> ImageConfig {
-        ImageConfig { indicate_existing_colors: false }
+        ImageConfig {
+            indicate_existing_colors: false,
+            dark_mode_policy: DarkModePolicy::INVERSE
+        }
     }
 
-    /// # ImageConfig::indicate_existing_colors()
-    /// 
+    /// # ImageConfig::set_indicate_existing_colors()
+    ///
     /// Sets the indicate_existing_colors config
-    /// 
+    ///
     /// ## Arguments
-    /// * `on` - bool - whether to on this config
-    /// 
+    /// * `on` - `bool` - whether to on this config
+    ///
     /// ## Returns
     /// * `Self` - The ImageConfig instance on which this method is called
     pub fn set_indicate_existing_colors(mut self, on: bool) -> Self {
@@ -148,11 +166,29 @@ impl ImageConfig {
         self
     }
 
+    /// # ImageConfig::set_dark_mode_policy()
+    ///
+    /// Sets the dark_mode_policy config
+    ///
+    /// ## Arguments
+    /// * `policy` - `DarkModePolicy` - which policy to use while applying dark mode
+    ///
+    /// ## Returns
+    /// * `Self` - The ImageConfig instance on which this method is called
+    pub fn set_dark_mode_policy(mut self, policy: DarkModePolicy) -> Self {
+        self.dark_mode_policy = policy;
+        self
+    }
+
+    pub fn get_dark_mode_policy(self) -> DarkModePolicy {
+        self.dark_mode_policy
+    }
+
     /// # ImageConfig::create_context()
-    /// 
+    ///
     /// Creates a new ImageContext
     pub fn create_context(self) -> ImageContext {
-        ImageContext::new(self, None, None)
+        ImageContext::new(Some(self), None, None)
     }
 }
 
@@ -163,7 +199,7 @@ impl ImageConfig {
 type ActionFunction = fn(u32, u16) -> u32;
 
 /// # ImageContext
-/// 
+///
 /// Provides all methods to perform various operations on the given image buffer
 pub struct ImageContext {
     config: ImageConfig,
@@ -172,32 +208,37 @@ pub struct ImageContext {
 }
 
 impl ImageContext {
-    /// # ImageContext::new()acdfe
-    /// 
+    /// # ImageContext::new()
+    ///
     /// Creates a new ImageContext instance
-    /// 
+    ///
     /// ## Argumnents
     /// * `config` - `ImageConfig` - Required. All the configurations
     /// * `buffer` - `Option<ImageBuffer>` - Optional. The buffer on which the operations are to be performed
     /// * `action` - `Option<ActionFunction>` - Optional.The action function for custom algorithms
-    /// 
+    ///
     /// ## Returns
     /// * `ImageContext` - Returns a new `ImageContext` instance
-    pub fn new(config: ImageConfig, buffer: Option<ImageBuffer>, action: Option<ActionFunction>) -> ImageContext {
+    pub fn new(config: Option<ImageConfig>, buffer: Option<ImageBuffer>, action: Option<ActionFunction>) -> ImageContext {
+        let image_config: ImageConfig = match config {
+            Some(given_options) => given_options,
+            None => ImageConfig::new()
+        };
+        
         ImageContext {
-            config,
+            config: image_config,
             buffer,
             action
         }
     }
 
-    /// ImageContext::set_buffer()
-    /// 
+    /// # ImageContext::set_buffer()
+    ///
     /// Sets the buffer of the ImageContext. This buffer will be used for dark mode operations
-    /// 
+    ///
     /// ## Arguments
     /// * `buffer` - `ImageBuffer` - Required. The buffer to be used for dark mode
-    /// 
+    ///
     /// ## Returns
     /// * `Self` - The `ImageContext` itself
     pub fn set_buffer(mut self, buffer: ImageBuffer) -> Self {
@@ -205,13 +246,13 @@ impl ImageContext {
         self
     }
 
-    /// ImageContext::set_config()
-    /// 
+    /// # ImageContext::set_config()
+    ///
     /// Sets the configurations of the ImageContext. This config will be used for dark mode operations
-    /// 
+    ///
     /// ## Arguments
     /// * `config` - `ImageConfig` - Required. The config to be used for dark mode
-    /// 
+    ///
     /// ## Returns
     /// * `Self` - The `ImageContext` itself
     pub fn set_config(mut self, config: ImageConfig) -> Self {
@@ -219,10 +260,10 @@ impl ImageContext {
         self
     }
 
-    /// ImageContext::set_action()
-    /// 
+    /// # ImageContext::set_action()
+    ///
     /// Sets the action function of the ImageContext. This action will be used for custom algorithms
-    /// 
+    ///
     /// ## Arguments
     /// * `action` - `ActionFunction` - Required.
     ///
@@ -233,6 +274,60 @@ impl ImageContext {
         self
     }
 
+    /// # ImageContext::is_buffer_set()
+    ///
+    /// Checks if a buffer is given or not
+    ///
+    /// ## Returns
+    /// * `bool` - Returns `true` if buffer is set, `false` otherwise
+    pub fn is_buffer_set(&self) -> bool {
+        match self.buffer {
+            Some(_) => true,
+            None => false
+        }
+    }
+
+    /// # ImageContext::is_action_set()
+    ///
+    /// Checks if an action function is given
+    ///
+    /// ## Returns
+    /// * `bool` - Returns `true` if action is set, `false` otherwise
+    pub fn is_action_set(&self) -> bool {
+        match self.action {
+            Some(_) => true,
+            None => false
+        }
+    }
+
+    /// # ImageContext::inverse_colors()
+    /// 
+    /// inverses the color pixels
+    /// 
+    /// ## Returns
+    /// * `ImageBuffer` - A new ImageBuffer containing the inversed pixels
+    fn inverse_colors(&self) -> ImageBuffer {
+        // TODO: Inverse the pixels
+        ImageBuffer::new(1, 1, &[1,2])
+    }
+
+    /// ImageContext::apply_dark_mode()
+    /// 
+    /// The heart of the this night_visual image library.
+    /// Does the actual 
+    pub fn apply_dark_mode(&self) -> Result<ImageBuffer, Error> {
+        if !self.is_buffer_set() {
+            // Err(Error {})
+            panic!("Buffer is not set!");
+        }
+
+        // match self.config.get_dark_mode_policy() {
+        //     DarkModePolicy::INVERSE => Ok(self.inverse_colors())
+        // }
+
+        Ok(self.inverse_colors())
+        // let newBuffer = ImageBuffer::new(self.width, self.height, [1,4]);
+    }
     // pub fn create_image(width: u32, height: u32) {
     //     // let buffer = Buffer {
     //     //     width,
