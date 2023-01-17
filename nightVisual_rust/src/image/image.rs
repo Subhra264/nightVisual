@@ -194,8 +194,12 @@ impl ImageConfig {
         self
     }
 
-    pub fn get_dark_mode_policy(self) -> DarkModePolicy {
-        self.dark_mode_policy
+    pub fn indicate_existing_colors(&self) -> bool {
+        self.indicate_existing_colors
+    }
+
+    pub fn dark_mode_policy(&self) -> &DarkModePolicy {
+        &self.dark_mode_policy
     }
 
     /// # ImageConfig::create_context()
