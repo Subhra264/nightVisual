@@ -38,6 +38,8 @@ use super::pixels::{Pixel, RgbaPixel};
 /// but contains only the necessary fields/methods for this crate.
 trait ImgView {
     fn dimensions(&self) -> (u32, u32);
+    fn width(&self) -> u32;
+    fn height(&self) -> u32;
     fn get_pixel(&self, x: u32, y: u32) -> &Pixel;
     fn pixels(&self) -> &Vec<Pixel>;
 }
@@ -55,6 +57,14 @@ impl ImgView for ImageBuffer {
     /// Returns a tuple containing width and height sequentially.
     fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
+    }
+
+    fn width(&self) -> u32 {
+        self.width
+    }
+
+    fn height(&self) -> u32 {
+        self.height
     }
 
     /// Gives the pixel data in a certain position
@@ -85,7 +95,7 @@ impl ImgView for ImageBuffer {
 }
 
 impl ImageBuffer {
-    pub fn new(width: u32, height: u32, data: &[u8]) -> ImageBuffer {
+    pub fn new_from_raw_data(width: u32, height: u32, data: &[u8]) -> ImageBuffer {
         let mut pixels: Vec<Pixel> = Vec::new();
 
         // For now lets consider only rgba images
@@ -104,6 +114,10 @@ impl ImageBuffer {
         }
 
         ImageBuffer { width, height, data: pixels }
+    }
+
+    pub fn new_from_pixels(width: u32, height: u32, data: Vec<Pixel>) -> ImageBuffer {
+        ImageBuffer { width, height, data }
     }
 }
 
@@ -302,19 +316,49 @@ impl ImageContext {
 
     /// # ImageContext::inverse_colors()
     /// 
-    /// inverses the color pixels
+    /// Inverses the color pixels. Must be used after the buffer is set.
     /// 
     /// ## Returns
     /// * `ImageBuffer` - A new ImageBuffer containing the inversed pixels
     fn inverse_colors(&self) -> ImageBuffer {
+        //
+        let buffer = self.buffer.as_ref().unwrap();
+        let pixels = buffer.pixels();
+        let (width, height) = buffer.dimensions();
+
+        // let (width, height) = self.buffer?.dimensions();
+        // let ref buffer_data = self.buffer?.data;
         // TODO: Inverse the pixels
-        ImageBuffer::new(1, 1, &[1,2])
+        let mut inversed_pixels: Vec<Pixel> = Vec::new();
+
+        for i in 0..(buffer.width() * buffer.height()) as usize {
+
+            // For now, only dealing with RgbaPixels
+            let ref pixel = pixels[i];
+
+            match pixel {
+                Pixel::RGBA(rgba_pixel) => {
+
+                    let new_r= 255 - rgba_pixel.r();
+                    let new_g = 255 - rgba_pixel.g();
+                    let new_b = 255 - rgba_pixel.b();
+                    let new_a = rgba_pixel.a();
+                    
+                    // Let's not use a for now
+        
+                    inversed_pixels.push(Pixel::RGBA(RgbaPixel::new(new_r, new_g, new_b, new_a)));
+                },
+                _ => {} // TODO: Do nothing for now
+            }
+        }
+
+        ImageBuffer::new_from_pixels(width, height, inversed_pixels)
     }
 
     /// ImageContext::apply_dark_mode()
     /// 
     /// The heart of the this night_visual image library.
-    /// Does the actual 
+    /// Does the actual operations
     pub fn apply_dark_mode(&self) -> Result<ImageBuffer, Error> {
         if !self.is_buffer_set() {
             // Err(Error {})

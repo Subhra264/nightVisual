@@ -33,6 +33,31 @@ impl RgbaPixel {
     self
   }
 
+  pub fn set_b(&mut self, b: u8) -> &Self {
+    self.b = b;
+    self
+  }
+
+  pub fn set_a(&mut self, a: u8) -> &Self {
+    self.a = a;
+    self
+  }
+
+  pub fn r(&self) -> u8 {
+    self.r
+  }
+
+  pub fn b(&self) -> u8 {
+    self.b
+  }
+
+  pub fn g(&self) -> u8 {
+    self.g
+  }
+
+  pub fn a(&self) -> u8 {
+    self.a
+  }
 }
 
 /// # RgbPixel
