@@ -33,7 +33,7 @@ use std::fmt::Error;
 ///
 /// this trait is similar to `GenericImageView` trait provided by the `image` crate,
 /// but contains only the necessary fields/methods for this crate.
-trait ImgView {
+pub trait ImgView {
     fn dimensions(&self) -> (u32, u32);
     fn width(&self) -> u32;
     fn height(&self) -> u32;
@@ -425,5 +425,50 @@ impl ImageContext {
 
         Ok(self.inverse_colors())
         // let newBuffer = ImageBuffer::new(self.width, self.height, [1,4]);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const IMAGE_DATA: [u8; 8] = [25, 80, 61, 15, 89, 56, 156, 254];
+
+    #[test]
+    fn image_buffer_width_height_less_than_data_length() {
+        let buffer = ImageBuffer::new_from_raw_data(1, 1, &IMAGE_DATA);
+
+        let (width, height) = buffer.dimensions();
+
+        assert_eq!(width, 1);
+        assert_eq!(height, 1);
+        assert_eq!(buffer.width(), 1);
+        assert_eq!(buffer.height(), 1);
+        assert_eq!(buffer.pixels().len(), 1);
+    }
+
+    #[test]
+    fn image_buffer_width_height_match_with_data_length() {
+        let buffer = ImageBuffer::new_from_raw_data(2, 1, &IMAGE_DATA);
+
+        let (width, height) = buffer.dimensions();
+
+        assert_eq!(width, 2);
+        assert_eq!(height, 1);
+        assert_eq!(buffer.width(), 2);
+        assert_eq!(buffer.height(), 1);
+        assert_eq!(buffer.pixels().len(), 2);
+    }
+
+    #[test]
+    fn image_buffer_width_height_greater_than_data_length() {
+        let buffer = ImageBuffer::new_from_raw_data(3, 2, &IMAGE_DATA);
+
+        let (width, height) = buffer.dimensions();
+
+        assert_eq!(width, 3);
+        assert_eq!(height, 2);
+        assert_eq!(buffer.width(), 3);
+        assert_eq!(buffer.height(), 2);
+        assert_eq!(buffer.pixels().len(), 6);
     }
 }
