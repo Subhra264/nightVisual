@@ -1,10 +1,9 @@
-use std::fmt::Error;
 use super::pixels::{Pixel, RgbaPixel};
+use std::fmt::Error;
 
-// Goal 
+// Goal
 //
 // fn main() {
-
 
 //     let buffer = ImageConfig::new()
 //     .indicate_existing_colors(true)
@@ -12,28 +11,26 @@ use super::pixels::{Pixel, RgbaPixel};
 //     .buffer(width, height, data)
 //     .dark_mode();
 
-    // ImageContext::new()
-    //     .create_buffer(width, height)
-    //     .fill_buffer(data)
-    //     .action(action)
-    //     .create_configs()
-    //     .indicate_existing_colors()
-        
+// ImageContext::new()
+//     .create_buffer(width, height)
+//     .fill_buffer(data)
+//     .action(action)
+//     .create_configs()
+//     .indicate_existing_colors()
 
-    // ImageBuffer::new(width, height)
-    //     .data(vec![8,23,232,234,234])
-    //     .build_context()
-    //     .config()
-    //     .indicate_existing_colors()
+// ImageBuffer::new(width, height)
+//     .data(vec![8,23,232,234,234])
+//     .build_context()
+//     .config()
+//     .indicate_existing_colors()
 
-    // ImageBuffer::new(width, height)
-    // ImageBuffer::data(vec![])
+// ImageBuffer::new(width, height)
+// ImageBuffer::data(vec![])
 
 // }
 
-
 /// #ImgView
-/// 
+///
 /// this trait is similar to `GenericImageView` trait provided by the `image` crate,
 /// but contains only the necessary fields/methods for this crate.
 trait ImgView {
@@ -47,11 +44,10 @@ trait ImgView {
 pub struct ImageBuffer {
     width: u32,
     height: u32,
-    data: Vec<Pixel> //TODO
+    data: Vec<Pixel>, //TODO
 }
 
 impl ImgView for ImageBuffer {
-
     /// Returns the dimensions of the image buffer
     ///
     /// Returns a tuple containing width and height sequentially.
@@ -81,9 +77,15 @@ impl ImgView for ImageBuffer {
             // the `SliceIndex<[Pixel]>` trait, use of usize is necessary as it
             // implements the `SliceIndex<[T]>` trait
             return &self.data[(y * self.height + x) as usize];
+            // return Ok(&self.data[(y * self.height + x) as usize]);
         }
-        
-        panic!("Image index {:?} out of bound {:?}", (x, y), (self.width, self.height));
+
+        panic!(
+            "Image index {:?} out of bound {:?}",
+            (x, y),
+            (self.width, self.height)
+        );
+        // Err(Error(""))
     }
 
     /// Returns a iterator over the pixels of the image
@@ -96,38 +98,85 @@ impl ImgView for ImageBuffer {
 
 impl ImageBuffer {
     pub fn new_from_raw_data(width: u32, height: u32, data: &[u8]) -> ImageBuffer {
+        let no_of_required_pixels = (width * height) as usize;
+
+        if no_of_required_pixels == 0 {
+            panic!("Width and Height must be non-zero!");
+        }
+
         let mut pixels: Vec<Pixel> = Vec::new();
 
-        // For now lets consider only rgba images
-        for i in 0..(width * height) as usize {
+        let complete_pixels_in_data = data.len() / 4;
+        let mut remaining_data = data.len() % 4;
+        let no_of_complete_pixels = if no_of_required_pixels <= complete_pixels_in_data {
+            no_of_required_pixels
+        } else {
+            complete_pixels_in_data
+        };
+        let mut no_of_remaining_pixels = no_of_required_pixels - no_of_complete_pixels;
 
+        // For now lets consider only rgba images
+        for i in 0..no_of_complete_pixels as usize {
             // (Width * Height) is the total number of pixels present in the image
             // Each pixel consists of 4 different values - r, g, b and a
             // Since, this method expects the data to be an one dimensional array of u8,
             // for each pixel( i.e. for each 'i'), we have to iterate over 4 consecutive elements
-            let r = data[i*4];
-            let g = data[i*4 + 1];
-            let b = data[i*4 + 2];
-            let a = data[i*4 + 3];
+            let r = data[i * 4];
+            let g = data[i * 4 + 1];
+            let b = data[i * 4 + 2];
+            let a = data[i * 4 + 3];
 
             pixels.push(Pixel::RGBA(RgbaPixel::new(r, g, b, a)));
         }
 
-        ImageBuffer { width, height, data: pixels }
+        if no_of_remaining_pixels > 0 {
+            if remaining_data > 0 {
+                let r = data[no_of_complete_pixels];
+                let (mut g, mut b, a): (u8, u8, u8) = (255, 255, 255);
+                remaining_data -= 1;
+
+                if remaining_data > 0 {
+                    g = data[no_of_complete_pixels + 1];
+                    remaining_data -= 1;
+                }
+
+                if remaining_data > 0 {
+                    b = data[no_of_complete_pixels + 2];
+                    // remaining_data -= 1;
+                }
+
+                pixels.push(Pixel::RGBA(RgbaPixel::new(r, g, b, a)));
+                no_of_remaining_pixels -= 1;
+            }
+
+            for _ in 0..no_of_remaining_pixels {
+                pixels.push(Pixel::RGBA(RgbaPixel::new(255, 255, 255, 255)));
+            }
+        }
+
+        ImageBuffer {
+            width,
+            height,
+            data: pixels,
+        }
     }
 
     pub fn new_from_pixels(width: u32, height: u32, data: Vec<Pixel>) -> ImageBuffer {
-        ImageBuffer { width, height, data }
+        ImageBuffer {
+            width,
+            height,
+            data,
+        }
     }
 }
 
 /// # DarkModePolicy
-/// 
+///
 /// An enum representing the policy that is
 /// going to be followed while applying dark mode
-/// 
+///
 /// ## Possible values
-/// 
+///
 /// * `INVERSE` - Inverse Policy that inverses the pixel colors
 pub enum DarkModePolicy {
     INVERSE,
@@ -140,12 +189,11 @@ pub enum DarkModePolicy {
 pub struct ImageConfig {
     // TODO: Offer configuration options for flexibility
     indicate_existing_colors: bool,
-    dark_mode_policy: DarkModePolicy
+    dark_mode_policy: DarkModePolicy,
 }
 
 // Methods to set the configurations
 impl ImageConfig {
-
     /// # ImageConfig::new()
     ///
     /// Returns a new instance of ImageConfig struct with default configurations
@@ -162,7 +210,7 @@ impl ImageConfig {
     pub fn new() -> ImageConfig {
         ImageConfig {
             indicate_existing_colors: false,
-            dark_mode_policy: DarkModePolicy::INVERSE
+            dark_mode_policy: DarkModePolicy::INVERSE,
         }
     }
 
@@ -222,7 +270,7 @@ type ActionFunction = fn(u32, u16) -> u32;
 pub struct ImageContext {
     config: ImageConfig,
     buffer: Option<ImageBuffer>,
-    action: Option<ActionFunction>
+    action: Option<ActionFunction>,
 }
 
 impl ImageContext {
@@ -237,16 +285,20 @@ impl ImageContext {
     ///
     /// ## Returns
     /// * `ImageContext` - Returns a new `ImageContext` instance
-    pub fn new(config: Option<ImageConfig>, buffer: Option<ImageBuffer>, action: Option<ActionFunction>) -> ImageContext {
+    pub fn new(
+        config: Option<ImageConfig>,
+        buffer: Option<ImageBuffer>,
+        action: Option<ActionFunction>,
+    ) -> ImageContext {
         let image_config: ImageConfig = match config {
             Some(given_options) => given_options,
-            None => ImageConfig::new()
+            None => ImageConfig::new(),
         };
-        
+
         ImageContext {
             config: image_config,
             buffer,
-            action
+            action,
         }
     }
 
@@ -301,7 +353,7 @@ impl ImageContext {
     pub fn is_buffer_set(&self) -> bool {
         match self.buffer {
             Some(_) => true,
-            None => false
+            None => false,
         }
     }
 
@@ -314,14 +366,14 @@ impl ImageContext {
     pub fn is_action_set(&self) -> bool {
         match self.action {
             Some(_) => true,
-            None => false
+            None => false,
         }
     }
 
     /// # ImageContext::inverse_colors()
-    /// 
+    ///
     /// Inverses the color pixels. Must be used after the buffer is set.
-    /// 
+    ///
     /// ## Returns
     /// * `ImageBuffer` - A new ImageBuffer containing the inversed pixels
     fn inverse_colors(&self) -> ImageBuffer {
@@ -336,22 +388,20 @@ impl ImageContext {
         let mut inversed_pixels: Vec<Pixel> = Vec::new();
 
         for i in 0..(buffer.width() * buffer.height()) as usize {
-
             // For now, only dealing with RgbaPixels
             let ref pixel = pixels[i];
 
             match pixel {
                 Pixel::RGBA(rgba_pixel) => {
-
-                    let new_r= 255 - rgba_pixel.r();
+                    let new_r = 255 - rgba_pixel.r();
                     let new_g = 255 - rgba_pixel.g();
                     let new_b = 255 - rgba_pixel.b();
                     let new_a = rgba_pixel.a();
-                    
+
                     // Let's not use a for now
-        
+
                     inversed_pixels.push(Pixel::RGBA(RgbaPixel::new(new_r, new_g, new_b, new_a)));
-                },
+                }
                 _ => {} // TODO: Do nothing for now
             }
         }
@@ -360,7 +410,7 @@ impl ImageContext {
     }
 
     /// ImageContext::apply_dark_mode()
-    /// 
+    ///
     /// The heart of the this night_visual image library.
     /// Does the actual operations
     pub fn apply_dark_mode(&self) -> Result<ImageBuffer, Error> {
@@ -376,38 +426,4 @@ impl ImageContext {
         Ok(self.inverse_colors())
         // let newBuffer = ImageBuffer::new(self.width, self.height, [1,4]);
     }
-    // pub fn create_image(width: u32, height: u32) {
-    //     // let buffer = Buffer {
-    //     //     width,
-    //     //     height,
-    //     //     container: vec![1,2,3,4]
-    //     // };
-
-    //     let buffer = ImageBuffer {
-    //         width,
-    //         height,
-    //         data: Pixels {
-    //             // pixels: [Pixel {}]
-    //         }
-    //     };
-
-    //     // Self::create_image_from_buffer(&buffer as &dyn ImgView);
-    //     // Self::create_image_from_buffer(&buffer as &ImageBuffer);
-    //     Self::create_image_from_buffer(&buffer as &Buffer);
-
-    //     // Image {
-    //     //     title: String::from("image.jpg"),
-    //     //     size,
-    //     //     data: ImageBuffer::new(size, size),
-    //     // }
-    // }
-
-    // // pub fn create_image_from_buffer(img: &dyn ImgView) {
-    // pub fn create_image_from_buffer(img: &Buffer) {
-    //     // Image {
-    //     //     title
-    //     // }
-    //     let _image = img;
-        
-    // }
 }
